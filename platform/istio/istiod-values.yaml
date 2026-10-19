@@ -1,0 +1,11 @@
+# Instalação enxuta: só o que o projeto usa.
+autoscaleEnabled: false
+resources:
+  requests: {cpu: 100m, memory: 256Mi}
+meshConfig:
+  enablePrometheusMerge: true   # métricas do app + Envoy na porta 15020
+global:
+  proxy:
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {cpu: "1", memory: 256Mi}

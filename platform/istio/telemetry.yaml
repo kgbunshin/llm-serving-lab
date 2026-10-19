@@ -1,0 +1,21 @@
+# Adiciona o path da requisição como label nas métricas do gateway, para medir
+# latência por rota. A cardinalidade fica limitada porque o gateway não é
+# público e o VirtualService só tem 4 rotas.
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: route-label
+  namespace: istio-ingress
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  metrics:
+    - providers: [{name: prometheus}]
+      overrides:
+        - match: {metric: REQUEST_COUNT, mode: CLIENT}
+          tagOverrides:
+            request_path: {value: request.url_path}
+        - match: {metric: REQUEST_DURATION, mode: CLIENT}
+          tagOverrides:
+            request_path: {value: request.url_path}

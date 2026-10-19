@@ -1,0 +1,26 @@
+---
+# Remove o k3s e a tabela de firewall. O delfos não é tocado.
+- name: Remove k3s from the VPS
+  hosts: llmlab
+  become: true
+  tasks:
+    - name: Uninstall k3s
+      ansible.builtin.command: /usr/local/bin/k3s-uninstall.sh
+      args:
+        removes: /usr/local/bin/k3s-uninstall.sh
+
+    - name: Stop and disable guard
+      ansible.builtin.systemd_service:
+        name: llmlab-guard
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Remove guard files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/llmlab-guard.service
+        - /etc/llmlab-guard.nft
+        - /usr/local/sbin/k3s-install.sh

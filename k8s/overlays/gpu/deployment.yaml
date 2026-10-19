@@ -1,0 +1,56 @@
+# Perfil GPU: vLLM numa NVIDIA L4 (24 GB). O modelo é o mesmo do perfil CPU, em
+# bf16, para que a comparação no post seja justa.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm
+  namespace: llm
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate            # só existe uma GPU
+  selector:
+    matchLabels:
+      app: llm
+  template:
+    metadata:
+      labels:
+        app: llm
+        version: vllm-gpu
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      tolerations:
+        - {key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}
+      containers:
+        - name: model
+          image: vllm/vllm-openai:v0.32.0
+          args:
+            - --model=Qwen/Qwen2.5-1.5B-Instruct
+            - --served-model-name=qwen2.5-1.5b
+            - --host=0.0.0.0
+            - --port=8000
+            - --max-model-len=4096
+            - --gpu-memory-utilization=0.85
+          ports:
+            - {name: http, containerPort: 8000}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 5
+          startupProbe:       # download + carregamento + CUDA graphs levam minutos
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            failureThreshold: 90
+          resources:
+            requests: {cpu: "2", memory: 8Gi}
+            limits: {memory: 14Gi, nvidia.com/gpu: 1}
+          volumeMounts:
+            - {name: shm, mountPath: /dev/shm}
+            - {name: hf-cache, mountPath: /root/.cache/huggingface}
+      volumes:
+        - name: shm
+          emptyDir: {medium: Memory, sizeLimit: 2Gi}
+        - name: hf-cache      # o cluster é descartável, então cache efêmero basta
+          emptyDir: {}

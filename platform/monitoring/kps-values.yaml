@@ -1,0 +1,30 @@
+# kube-prometheus-stack enxuto para um nó só.
+alertmanager:
+  enabled: false
+# k3s/GKE não expõem esses componentes; deixá-los ligados só gera alvos "down".
+kubeEtcd: {enabled: false}
+kubeControllerManager: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeProxy: {enabled: false}
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    scrapeInterval: 15s
+    # Pega PodMonitors/Rules de qualquer namespace, não só os do chart.
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: {cpu: 200m, memory: 512Mi}
+      limits: {memory: 1536Mi}
+grafana:
+  adminPassword: ""        # o chart gera uma senha aleatória num Secret
+  service:
+    type: ClusterIP
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 384Mi}

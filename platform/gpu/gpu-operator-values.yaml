@@ -1,0 +1,13 @@
+# Etapa 1 (perfil GPU): o operador instala driver, container toolkit, device
+# plugin e DCGM exporter. No GKE o node pool é criado com
+# gpu-driver-version=disabled e imagem Ubuntu, para o operador cuidar do driver.
+driver:
+  enabled: true
+dcgmExporter:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+node-feature-discovery:
+  worker:
+    tolerations:
+      - {key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}

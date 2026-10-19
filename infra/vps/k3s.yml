@@ -1,0 +1,94 @@
+---
+# Sobe um k3s de um nó na VPS do delfos, sem expor nada na internet.
+#   ansible-playbook -i infra/vps/inventory.ini infra/vps/k3s.yml --check --diff
+#   ansible-playbook -i infra/vps/inventory.ini infra/vps/k3s.yml
+- name: K3s single node for llm-serving-lab
+  hosts: llmlab
+  become: true
+  vars:
+    k3s_version: v1.37.1+k3s1
+    public_iface: "{{ ansible_default_ipv4.interface }}"
+    local_kubeconfig: "{{ playbook_dir }}/../../.kube/cpu.yaml"
+  tasks:
+    - name: Install nftables
+      ansible.builtin.apt:
+        name: nftables
+        state: present
+        install_recommends: false
+
+    - name: Guard rules
+      ansible.builtin.template:
+        src: llmlab-guard.nft.j2
+        dest: /etc/llmlab-guard.nft
+        mode: "0600"
+      notify: Restart guard
+
+    - name: Guard unit
+      ansible.builtin.template:
+        src: llmlab-guard.service.j2
+        dest: /etc/systemd/system/llmlab-guard.service
+        mode: "0644"
+      notify: Restart guard
+
+    - name: Guard enabled and started (before k3s opens any port)
+      ansible.builtin.systemd_service:
+        name: llmlab-guard
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: K3s config dir
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: K3s config
+      ansible.builtin.template:
+        src: k3s-config.yaml.j2
+        dest: /etc/rancher/k3s/config.yaml
+        mode: "0600"
+      notify: Restart k3s
+
+    - name: Download k3s installer
+      ansible.builtin.get_url:
+        url: https://get.k3s.io
+        dest: /usr/local/sbin/k3s-install.sh
+        mode: "0700"
+
+    - name: Install k3s
+      ansible.builtin.command: /usr/local/sbin/k3s-install.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for node Ready
+      ansible.builtin.command: k3s kubectl wait --for=condition=Ready node --all --timeout=180s
+      changed_when: false
+
+    - name: Read kubeconfig
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig
+
+    - name: Save kubeconfig locally (server stays 127.0.0.1:6443, use make vps-tunnel)
+      ansible.builtin.copy:
+        content: "{{ kubeconfig.content | b64decode | replace('name: default', 'name: llmlab-vps') | replace('cluster: default', 'cluster: llmlab-vps') | replace('user: default', 'user: llmlab-vps') | replace('current-context: default', 'current-context: llmlab-vps') }}"
+        dest: "{{ local_kubeconfig }}"
+        mode: "0600"
+      delegate_to: localhost
+      become: false
+
+  handlers:
+    - name: Restart guard
+      ansible.builtin.systemd_service:
+        name: llmlab-guard
+        state: restarted
+        daemon_reload: true
+
+    - name: Restart k3s
+      ansible.builtin.systemd_service:
+        name: k3s
+        state: restarted
+      when: not ansible_check_mode   # no --check o k3s ainda não existe

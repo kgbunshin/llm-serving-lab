@@ -1,0 +1,41 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: llm
+  namespace: llm
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts: ["*"]
+---
+# Uma rota por endpoint da API OpenAI-compatível. O Telemetry em
+# platform/istio/telemetry.yaml põe o path como label nas métricas do gateway,
+# daí sai a latência por rota.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: llm
+  namespace: llm
+spec:
+  hosts: ["*"]
+  gateways: [llm]
+  http:
+    - name: chat
+      match: [{uri: {exact: /v1/chat/completions}}]
+      timeout: 300s
+      route: [{destination: {host: llm.llm.svc.cluster.local, port: {number: 8000}}}]
+    - name: completions
+      match: [{uri: {exact: /v1/completions}}]
+      timeout: 300s
+      route: [{destination: {host: llm.llm.svc.cluster.local, port: {number: 8000}}}]
+    - name: models
+      match: [{uri: {exact: /v1/models}}]
+      route: [{destination: {host: llm.llm.svc.cluster.local, port: {number: 8000}}}]
+    - name: health
+      match: [{uri: {exact: /health}}]
+      route: [{destination: {host: llm.llm.svc.cluster.local, port: {number: 8000}}}]

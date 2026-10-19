@@ -1,0 +1,35 @@
+# Coleta a porta 15020 de todo pod com sidecar Istio (e do gateway). Com o
+# metrics merging, ela devolve as métricas do Envoy (istio_*) e as do app
+# (vllm:* ou llamacpp:*) juntas, sem precisar abrir exceção no mTLS STRICT.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: istio-merged
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames: [llm, istio-ingress]
+  selector:
+    matchExpressions:
+      - {key: service.istio.io/canonical-name, operator: Exists}
+  podMetricsEndpoints:
+    - port: http-envoy-prom
+      path: /stats/prometheus
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_ip]
+          targetLabel: __address__
+          replacement: $1:15020
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames: [istio-system]
+  selector:
+    matchLabels:
+      app: istiod
+  endpoints:
+    - port: http-monitoring

@@ -1,0 +1,40 @@
+# Roda de dentro do cluster, passando pelo ingress gateway: a latência medida
+# não inclui o túnel SSH nem a internet. Namespace sem sidecar de propósito,
+# o tráfego entra pelo gateway como entraria um cliente externo.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: loadtest
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: loadgen
+  namespace: loadtest
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: loadgen
+          image: python:3.12-slim
+          command: ["python3", "/app/loadgen.py"]
+          args:
+            - --url=http://istio-ingressgateway.istio-ingress.svc.cluster.local
+            - --concurrency=$(CONCURRENCY)
+            - --requests=$(REQUESTS)
+            - --cost-per-hour=$(COST_PER_HOUR)
+          env:
+            - {name: CONCURRENCY, value: "1,2,4,8"}
+            - {name: REQUESTS, value: "40"}
+            - {name: COST_PER_HOUR, value: "0"}
+          volumeMounts:
+            - {name: app, mountPath: /app}
+          resources:
+            requests: {cpu: 100m, memory: 64Mi}
+      volumes:
+        - name: app
+          configMap:
+            name: loadgen

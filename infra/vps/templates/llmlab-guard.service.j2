@@ -1,0 +1,14 @@
+[Unit]
+Description=Drop public traffic to k3s ports (llm-serving-lab)
+Before=k3s.service
+Wants=network-pre.target
+After=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/llmlab-guard.nft
+ExecStop=/usr/sbin/nft delete table inet llmlab_guard
+
+[Install]
+WantedBy=multi-user.target

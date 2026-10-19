@@ -1,0 +1,27 @@
+# Etapa 3: mTLS STRICT no namespace. Nada fala com o modelo em texto puro.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: llm
+spec:
+  mtls:
+    mode: STRICT
+---
+# Só o ingress gateway chama o modelo. As métricas são lidas pela porta 15020
+# do sidecar (metrics merging), que não passa por esta policy.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: only-ingress
+  namespace: llm
+spec:
+  selector:
+    matchLabels:
+      app: llm
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-ingress/sa/istio-ingressgateway

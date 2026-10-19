@@ -1,0 +1,12 @@
+# Gerenciado pelo Ansible (llm-serving-lab/infra/vps/k3s.yml).
+write-kubeconfig-mode: "0600"
+disable:
+  - traefik        # o ingress é o Istio
+  - servicelb      # nada vira LoadBalancer público
+tls-san:
+  - 127.0.0.1      # acesso só por túnel SSH
+secrets-encryption: true
+kubelet-arg:
+  # Reserva para o delfos, o cloudflared e o sistema, que dividem a máquina.
+  - system-reserved=cpu=500m,memory=1536Mi
+  - eviction-hard=memory.available<500Mi

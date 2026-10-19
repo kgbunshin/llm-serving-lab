@@ -1,0 +1,94 @@
+# Perfil CPU: roda na VPS sem GPU. Mesmo modelo do perfil GPU (Qwen2.5-1.5B),
+# quantizado em Q4_K_M para caber em 4 vCPU. Serve para montar e testar todo o
+# resto (Istio, métricas, custo) sem gastar nada com GPU.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm
+  namespace: llm
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate            # o PVC é RWO e a VPS só tem um nó
+  selector:
+    matchLabels:
+      app: llm
+  template:
+    metadata:
+      labels:
+        app: llm
+        version: llamacpp-cpu
+      annotations:
+        # Istio junta estas métricas com as do Envoy na porta 15020.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      initContainers:
+        - name: fetch-model
+          image: curlimages/curl:8.11.1
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              f=/models/$(MODEL_FILE)
+              [ -s "$f" ] && exit 0
+              curl -fL --retry 3 -o "$f.part" "$(MODEL_URL)"
+              mv "$f.part" "$f"
+          env:
+            - name: MODEL_FILE
+              value: qwen2.5-1.5b-instruct-q4_k_m.gguf
+            - name: MODEL_URL
+              value: https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
+          volumeMounts:
+            - {name: models, mountPath: /models}
+      containers:
+        - name: model
+          image: ghcr.io/ggml-org/llama.cpp:server-b11723
+          # Flag e valor separados: o llama-server troca "_" por "-" em "--flag=valor".
+          args:
+            - --model
+            - /models/qwen2.5-1.5b-instruct-q4_k_m.gguf
+            - --alias
+            - qwen2.5-1.5b
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+            - --metrics
+            - --ctx-size
+            - "8192"              # dividido entre os slots: 4096 por requisição
+            - --parallel
+            - "2"
+            - --threads
+            - "3"                 # 1 vCPU fica para o delfos e o sistema
+          ports:
+            - {name: http, containerPort: 8000}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 5
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          resources:
+            requests: {cpu: "2", memory: 2Gi}
+            limits: {cpu: "3", memory: 4Gi}
+          volumeMounts:
+            - {name: models, mountPath: /models}
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: models
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: models
+  namespace: llm
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path   # provisioner padrão do k3s
+  resources:
+    requests:
+      storage: 5Gi

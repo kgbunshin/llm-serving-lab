@@ -1,0 +1,15 @@
+# Custo por hora do nó, usado no dashboard. Na VPS o custo é fixo (plano mensal
+# dividido por 730 h). Ajuste para o valor real da sua fatura.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: llm-node-cost
+  namespace: monitoring
+spec:
+  groups:
+    - name: llm-cost-input
+      rules:
+        - record: llm:node_cost_usd_per_hour
+          expr: vector(0.0137)   # ~US$10/mês ÷ 730 h. TODO: valor real do plano Hostinger
+          labels:
+            profile: cpu

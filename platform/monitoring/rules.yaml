@@ -1,0 +1,68 @@
+# Normaliza as métricas dos dois servidores (vLLM e llama.cpp) em séries llm:*,
+# para o mesmo dashboard servir aos dois perfis. llm:node_cost_usd_per_hour vem
+# do overlay (k8s/overlays/*/cost.yaml).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: llm-serving
+  namespace: monitoring
+spec:
+  groups:
+    - name: llm-serving
+      interval: 15s
+      rules:
+        # --- vazão (vista pelo gateway, ou seja, o que o cliente recebeu) ---
+        - record: llm:requests:rate1m
+          expr: |
+            sum by (request_path, response_code) (
+              rate(istio_requests_total{reporter="source", destination_service_name="llm"}[1m])
+            )
+        - record: llm:ok_requests:rate5m
+          expr: |
+            sum(rate(istio_requests_total{reporter="source", destination_service_name="llm",
+                     request_path=~"/v1/(chat/)?completions", response_code="200"}[5m]))
+
+        # --- latência ponta a ponta por rota, em segundos ---
+        - record: llm:latency_seconds:p50_5m
+          expr: |
+            histogram_quantile(0.50, sum by (le, request_path) (
+              rate(istio_request_duration_milliseconds_bucket{reporter="source", destination_service_name="llm"}[5m])
+            )) / 1000
+        - record: llm:latency_seconds:p95_5m
+          expr: |
+            histogram_quantile(0.95, sum by (le, request_path) (
+              rate(istio_request_duration_milliseconds_bucket{reporter="source", destination_service_name="llm"}[5m])
+            )) / 1000
+        - record: llm:latency_seconds:p99_5m
+          expr: |
+            histogram_quantile(0.99, sum by (le, request_path) (
+              rate(istio_request_duration_milliseconds_bucket{reporter="source", destination_service_name="llm"}[5m])
+            )) / 1000
+
+        # --- tokens/s (do servidor de modelo) ---
+        - record: llm:generated_tokens:rate1m
+          expr: |
+            sum(rate(vllm:generation_tokens_total[1m]))
+              or sum(rate(llamacpp:tokens_predicted_total[1m]))
+        - record: llm:prompt_tokens:rate1m
+          expr: |
+            sum(rate(vllm:prompt_tokens_total[1m]))
+              or sum(rate(llamacpp:prompt_tokens_total[1m]))
+        - record: llm:generated_tokens:rate5m
+          expr: |
+            sum(rate(vllm:generation_tokens_total[5m]))
+              or sum(rate(llamacpp:tokens_predicted_total[5m]))
+        - record: llm:requests_in_flight
+          expr: |
+            sum(vllm:num_requests_running) or sum(llamacpp:requests_processing)
+
+        # --- custo (etapa 5). Só existe enquanto há tráfego: sem requisições
+        # o custo por requisição é indefinido, e o painel mostra "No data". ---
+        - record: llm:cost_usd_per_1k_requests
+          expr: |
+            scalar(llm:node_cost_usd_per_hour)
+              / (llm:ok_requests:rate5m > 0) / 3600 * 1000
+        - record: llm:cost_usd_per_1m_output_tokens
+          expr: |
+            scalar(llm:node_cost_usd_per_hour)
+              / (llm:generated_tokens:rate5m > 0) / 3600 * 1e6
