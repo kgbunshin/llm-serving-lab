@@ -7,7 +7,7 @@
   become: true
   vars:
     k3s_version: v1.37.1+k3s1
-    public_iface: "{{ ansible_default_ipv4.interface }}"
+    public_iface: "{{ ansible_facts['default_ipv4']['interface'] }}"
     local_kubeconfig: "{{ playbook_dir }}/../../.kube/cpu.yaml"
   tasks:
     - name: Install nftables
@@ -36,6 +36,7 @@
         enabled: true
         state: started
         daemon_reload: true
+      ignore_errors: "{{ ansible_check_mode }}"   # no --check a unit ainda não existe
 
     - name: K3s config dir
       ansible.builtin.file:
@@ -66,11 +67,13 @@
     - name: Wait for node Ready
       ansible.builtin.command: k3s kubectl wait --for=condition=Ready node --all --timeout=180s
       changed_when: false
+      when: not ansible_check_mode
 
     - name: Read kubeconfig
       ansible.builtin.slurp:
         src: /etc/rancher/k3s/k3s.yaml
       register: kubeconfig
+      when: not ansible_check_mode
 
     - name: Save kubeconfig locally (server stays 127.0.0.1:6443, use make vps-tunnel)
       ansible.builtin.copy:
@@ -79,6 +82,7 @@
         mode: "0600"
       delegate_to: localhost
       become: false
+      when: not ansible_check_mode
 
   handlers:
     - name: Restart guard
@@ -86,6 +90,7 @@
         name: llmlab-guard
         state: restarted
         daemon_reload: true
+      when: not ansible_check_mode
 
     - name: Restart k3s
       ansible.builtin.systemd_service:
