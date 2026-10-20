@@ -33,9 +33,19 @@ grafana:
   service:
     type: ClusterIP
   sidecar:
+    # Os sidecars pedem "reload" ao Grafana com usuário/senha, que ficam
+    # desligados quando o SSO do Access está ativo (dá 401). Sem reload, o
+    # Grafana relê os dashboards do disco sozinho. (O sidecar de datasources
+    # ainda tenta o reload e loga 401; é inofensivo, o datasource é fixo.)
     dashboards:
       enabled: true
       searchNamespace: ALL
+      skipReload: true
   resources:
-    requests: {cpu: 50m, memory: 128Mi}
-    limits: {memory: 384Mi}
+    requests: {cpu: 50m, memory: 192Mi}
+    limits: {memory: 768Mi}   # 384Mi dava OOMKilled no Grafana 13
+  grafana.ini:
+    plugins:
+      # Por padrão o Grafana baixa ~15 plugins na subida (pyroscope, loki,
+      # mssql...). Não usamos, e isso estourava a memória.
+      preinstall_disabled: true

@@ -60,7 +60,8 @@ istio: repos ## etapa 3: Istio base + istiod + ingress gateway
 
 monitoring: repos ## etapa 4: Prometheus + Grafana + regras + dashboard
 	$(H) upgrade --install kps prometheus-community/kube-prometheus-stack --version $(KPS_VERSION) \
-	  -n monitoring --create-namespace -f platform/monitoring/kps-values.yaml --wait --timeout 10m
+	  -n monitoring --create-namespace -f platform/monitoring/kps-values.yaml \
+	  $(if $(wildcard platform/monitoring/kps-values-sso.yaml),-f platform/monitoring/kps-values-sso.yaml) --wait --timeout 10m
 	$(K) apply -k platform/monitoring
 
 platform: istio monitoring ## istio + monitoring

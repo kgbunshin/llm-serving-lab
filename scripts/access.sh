@@ -43,9 +43,11 @@ TEAM=$(cf "$API/organizations" | jq_py "print(d['result']['auth_domain'])")
 echo "   app=$APP_ID team=$TEAM"
 
 echo ">> 2/3 Grafana aceitando só o JWT do Access (sem formulário de login)"
-VALUES=$(mktemp)
-trap 'rm -f "$VALUES"' EXIT
+# Fica no repo (nada aqui é segredo: AUD e team são públicos no redirect do
+# Access) para o `make monitoring` não desfazer o SSO.
+VALUES="$ROOT/platform/monitoring/kps-values-sso.yaml"
 cat > "$VALUES" <<EOF
+# Gerado por scripts/access.sh. Não editar à mão.
 grafana:
   grafana.ini:
     server:

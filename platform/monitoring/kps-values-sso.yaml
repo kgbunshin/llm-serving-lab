@@ -1,0 +1,21 @@
+# Gerado por scripts/access.sh. Não editar à mão.
+grafana:
+  grafana.ini:
+    server:
+      root_url: https://llm-lab.allans.dev
+    auth:
+      disable_login_form: true
+      disable_signout_menu: true
+    auth.basic:
+      enabled: false
+    auth.jwt:
+      enabled: true
+      header_name: Cf-Access-Jwt-Assertion
+      email_claim: email
+      username_claim: email
+      jwk_set_url: https://allan-lolzer.cloudflareaccess.com/cdn-cgi/access/certs
+      cache_ttl: 60m
+      expect_claims: '{"aud": ["a9ff6dd2e1c852e735213d2d6955a5b023f09245716335ff33620b7c99a1b7ff"], "iss": "https://allan-lolzer.cloudflareaccess.com"}'
+      auto_sign_up: true
+      role_attribute_path: "email == 'allan.lolzer@gmail.com' && 'Admin' || 'Viewer'"
+      role_attribute_strict: true
