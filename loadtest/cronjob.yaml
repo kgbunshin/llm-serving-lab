@@ -1,0 +1,39 @@
+# Probe contínuo: um teste curto de hora em hora, para o dashboard ter série
+# histórica (p95, tokens/s, custo) sem ninguém rodar make load. Curto de
+# propósito, porque a VPS é dividida com o delfos: ~2 min de CPU por hora.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: probe
+  namespace: loadtest
+spec:
+  schedule: "7 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: loadgen
+              image: python:3.12-slim
+              command: ["python3", "/app/loadgen.py"]
+              args:
+                - --url=http://istio-ingressgateway.istio-ingress.svc.cluster.local
+                - --concurrency=1,4
+                - --requests=8
+                - --cost-per-hour=$(COST_PER_HOUR)
+              env:
+                - {name: COST_PER_HOUR, value: "0"}
+              volumeMounts:
+                - {name: app, mountPath: /app}
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+          volumes:
+            - name: app
+              configMap:
+                name: loadgen

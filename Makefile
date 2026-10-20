@@ -10,9 +10,11 @@ KPS_VERSION      ?= 92.10.1
 GPU_OP_VERSION   ?= v26.7.2
 ANSIBLE_PLAYBOOK ?= ansible-playbook
 VPS              ?= root@srv1296923.hstgr.cloud
+HOSTNAME         ?= llm-lab.allans.dev
+TUNNEL_NAME      ?= llm-lab
 
 .PHONY: help repos vps-check vps-up vps-tunnel vps-down gke-up gke-down gpu-operator gpu-check \
-        istio monitoring platform deploy smoke load grafana prometheus status dashboard clean-app
+        istio monitoring platform deploy smoke load probe edge access grafana prometheus status dashboard clean-app
 
 help: ## lista os alvos
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -83,6 +85,17 @@ load: ## roda o load test dentro do cluster e salva em results/
 	$(K) -n loadtest wait --for=condition=complete job/loadgen --timeout=60m
 	@mkdir -p results
 	$(K) -n loadtest logs job/loadgen | tee results/$(PROFILE)-$$(date +%Y%m%d-%H%M).jsonl
+
+probe: ## liga o probe de hora em hora (CronJob) que alimenta o dashboard 24h
+	$(K) create namespace loadtest --dry-run=client -o yaml | $(K) apply -f -
+	$(K) -n loadtest create configmap loadgen --from-file=loadtest/loadgen.py --dry-run=client -o yaml | $(K) apply -f -
+	sed -e 's/value: "0"/value: "$(COST_PER_HOUR)"/' loadtest/cronjob.yaml | $(K) apply -f -
+
+edge: ## túnel Cloudflare llm-lab + cloudflared no cluster (sem DNS: ainda inacessível)
+	KCFG=$(KCFG) HOSTNAME=$(HOSTNAME) TUNNEL_NAME=$(TUNNEL_NAME) VPS=$(VPS) scripts/edge.sh
+
+access: ## publica o Grafana em $(HOSTNAME) atrás do Cloudflare Access (precisa CF_API_TOKEN)
+	KCFG=$(KCFG) HOSTNAME=$(HOSTNAME) TUNNEL_NAME=$(TUNNEL_NAME) VPS=$(VPS) KPS_VERSION=$(KPS_VERSION) scripts/access.sh
 
 grafana: ## abre o Grafana em localhost:3000 (usuário admin)
 	@echo "senha: $$($(K) -n monitoring get secret kps-grafana -o jsonpath='{.data.admin-password}' | base64 -d)"

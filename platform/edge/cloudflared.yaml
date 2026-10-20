@@ -1,0 +1,67 @@
+# Saída do cluster para a internet sem abrir porta nenhuma: o cloudflared faz
+# conexão de saída para a Cloudflare, e o Cloudflare Access fica na frente do
+# hostname. É um túnel próprio (llm-lab), separado do túnel do delfos.
+# As credenciais (Secret cloudflared-creds) são criadas pelo `make edge`, nunca
+# commitadas.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edge
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: edge
+data:
+  config.yaml: |
+    tunnel: TUNNEL_ID
+    credentials-file: /etc/cloudflared/creds/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    ingress:
+      - hostname: HOSTNAME
+        service: http://kps-grafana.monitoring.svc.cluster.local:80
+      - service: http_status:404
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: edge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.10.1
+          args: ["tunnel", "--config", "/etc/cloudflared/config/config.yaml", "run"]
+          livenessProbe:
+            httpGet: {path: /ready, port: 2000}
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: config, mountPath: /etc/cloudflared/config, readOnly: true}
+            - {name: creds, mountPath: /etc/cloudflared/creds, readOnly: true}
+      volumes:
+        - name: config
+          configMap: {name: cloudflared}
+        - name: creds
+          secret: {secretName: cloudflared-creds}

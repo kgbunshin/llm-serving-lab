@@ -91,6 +91,13 @@ Antes de rodar, confira o preço spot da sua região em
 `k8s/overlays/gpu/cost.yaml`. É esse valor que alimenta o dashboard e o
 `make load`.
 
+## Dashboard 24h em llm-lab.allans.dev
+
+- `make probe`: um CronJob roda um teste curto (concorrência 1 e 4, 8 requisições cada) toda hora no minuto 7. O Prometheus guarda 30 dias em volume persistente.
+- `make edge`: cria o túnel Cloudflare `llm-lab` e sobe o `cloudflared` **dentro do cluster**. Não abre porta nenhuma e não usa o túnel do delfos.
+- `CF_API_TOKEN=... make access`: cria o app do Cloudflare Access (só o seu e-mail), configura o Grafana para aceitar o JWT do Access e, por último, cria o DNS.
+  O login é só o código por e-mail, sem senha do Grafana. Sem um JWT válido do Access, o Grafana não deixa ninguém entrar, nem quem estiver dentro do cluster.
+
 ## Estrutura
 
 ```
@@ -98,6 +105,7 @@ infra/vps/        playbook do k3s (+ firewall nftables) e teardown
 infra/gke/        up.sh / down.sh (com TTL) / budget.sh
 platform/istio/   values do istiod e do gateway, Telemetry (path como label)
 platform/monitoring/  values do kube-prometheus-stack, PodMonitor, regras llm:*, dashboard
+platform/edge/    cloudflared do túnel llm-lab
 platform/gpu/     values do NVIDIA GPU operator + ResourceQuota do GKE
 k8s/base/         namespace, Service, Gateway, VirtualService, mTLS, AuthorizationPolicy
 k8s/overlays/     cpu (llama.cpp) e gpu (vLLM), cada um com seu custo/hora

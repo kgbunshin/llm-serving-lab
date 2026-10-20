@@ -8,7 +8,18 @@ kubeScheduler: {enabled: false}
 kubeProxy: {enabled: false}
 prometheus:
   prometheusSpec:
-    retention: 7d
+    # 30 dias em disco de verdade (local-path do k3s): o probe roda 24h e o
+    # histórico sobrevive a restart do pod.
+    retention: 30d
+    retentionSize: 8GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
     scrapeInterval: 15s
     # Pega PodMonitors/Rules de qualquer namespace, não só os do chart.
     podMonitorSelectorNilUsesHelmValues: false

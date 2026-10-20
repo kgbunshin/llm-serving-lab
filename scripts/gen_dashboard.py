@@ -94,7 +94,7 @@ dashboard = {
     "timezone": "browser",
     "schemaVersion": 39,
     "refresh": "15s",
-    "time": {"from": "now-1h", "to": "now"},
+    "time": {"from": "now-24h", "to": "now"},
     "panels": panels,
 }
 
