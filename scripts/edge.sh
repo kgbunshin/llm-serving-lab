@@ -9,9 +9,19 @@ TUNNEL_NAME=${TUNNEL_NAME:-llm-lab}
 K="kubectl --kubeconfig $KCFG"
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
-ssh "$VPS" "cloudflared tunnel info $TUNNEL_NAME >/dev/null 2>&1 || cloudflared tunnel create $TUNNEL_NAME"
-TUNNEL_ID=$(ssh "$VPS" "cloudflared tunnel list -o json -n $TUNNEL_NAME" \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)[0]["id"])')
+# --config /dev/null: na VPS existe o config.yml do delfos, e sem isso alguns
+# subcomandos (ex.: "tunnel info <nome>") usam o túnel do delfos e ignoram o nome.
+CF="cloudflared --config /dev/null"
+tunnel_id() {
+  ssh "$VPS" "$CF tunnel list -o json -n $TUNNEL_NAME 2>/dev/null" \
+    | python3 -c 'import sys,json; t=json.load(sys.stdin) or []; print(t[0]["id"] if t else "")'
+}
+TUNNEL_ID=$(tunnel_id)
+if [ -z "$TUNNEL_ID" ]; then
+  ssh "$VPS" "$CF tunnel create $TUNNEL_NAME"
+  TUNNEL_ID=$(tunnel_id)
+fi
+[ -n "$TUNNEL_ID" ] || { echo "túnel $TUNNEL_NAME não encontrado" >&2; exit 1; }
 echo ">> túnel $TUNNEL_NAME = $TUNNEL_ID"
 
 $K create namespace edge --dry-run=client -o yaml | $K apply -f -

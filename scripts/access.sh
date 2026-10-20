@@ -72,7 +72,7 @@ helm --kubeconfig "$KCFG" upgrade kps prometheus-community/kube-prometheus-stack
   -f "$ROOT/platform/monitoring/kps-values.yaml" -f "$VALUES" --wait >/dev/null
 
 echo ">> 3/3 DNS $HOSTNAME -> túnel $TUNNEL_NAME"
-ssh "$VPS" "cloudflared tunnel route dns $TUNNEL_NAME $HOSTNAME"
+ssh "$VPS" "cloudflared --config /dev/null tunnel route dns $TUNNEL_NAME $HOSTNAME"
 
 echo ">> conferindo: sem login, tem que redirecionar para o Access"
 sleep 5
