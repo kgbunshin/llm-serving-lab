@@ -1,5 +1,5 @@
 ---
-# Sobe um k3s de um nó na VPS do delfos, sem expor nada na internet.
+# Brings up a single-node k3s on the Delfos VPS, exposing nothing to the internet.
 #   ansible-playbook -i infra/vps/inventory.ini infra/vps/k3s.yml --check --diff
 #   ansible-playbook -i infra/vps/inventory.ini infra/vps/k3s.yml
 - name: K3s single node for llm-serving-lab
@@ -36,7 +36,7 @@
         enabled: true
         state: started
         daemon_reload: true
-      ignore_errors: "{{ ansible_check_mode }}"   # no --check a unit ainda não existe
+      ignore_errors: "{{ ansible_check_mode }}"   # under --check the unit doesn't exist yet
 
     - name: K3s config dir
       ansible.builtin.file:
@@ -96,4 +96,4 @@
       ansible.builtin.systemd_service:
         name: k3s
         state: restarted
-      when: not ansible_check_mode   # no --check o k3s ainda não existe
+      when: not ansible_check_mode   # under --check k3s doesn't exist yet

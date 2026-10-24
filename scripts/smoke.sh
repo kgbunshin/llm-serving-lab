@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Etapa 2: uma requisição de ponta a ponta pelo gateway (port-forward local).
+# Step 2: one end-to-end request through the gateway (local port-forward).
 set -euo pipefail
-: "${KCFG:?defina KCFG (kubeconfig do perfil)}"
+: "${KCFG:?set KCFG (profile kubeconfig)}"
 PORT=${PORT:-18080}
 
 kubectl --kubeconfig "$KCFG" -n istio-ingress port-forward svc/istio-ingressgateway "$PORT:80" >/dev/null &
@@ -14,5 +14,5 @@ curl -sf "localhost:$PORT/v1/models"; echo
 echo "--- /v1/chat/completions"
 time curl -sf "localhost:$PORT/v1/chat/completions" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"qwen2.5-1.5b","max_tokens":64,"messages":[{"role":"user","content":"Diga oi em uma frase."}]}'
+  -d '{"model":"qwen2.5-1.5b","max_tokens":64,"messages":[{"role":"user","content":"Say hi in one sentence."}]}'
 echo

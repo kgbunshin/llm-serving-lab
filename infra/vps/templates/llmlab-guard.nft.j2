@@ -1,8 +1,8 @@
-# Gerenciado pelo Ansible. A VPS não tem firewall e o k3s abre portas em
-# 0.0.0.0. Esta tabela descarta, na interface pública, tudo que é do cluster.
-# Fica no prerouting, antes do DNAT do kube-proxy, para cobrir NodePorts também.
-# Tabela própria: não usa nftables.service, cujo "flush ruleset" apagaria as
-# regras do k3s.
+# Managed by Ansible. The VPS has no firewall and k3s opens ports on 0.0.0.0.
+# This table drops all cluster traffic on the public interface. It sits in
+# prerouting, before kube-proxy DNAT, so it covers NodePorts too.
+# Its own table: doesn't use nftables.service, whose "flush ruleset" would
+# wipe out the k3s rules.
 table inet llmlab_guard
 delete table inet llmlab_guard
 table inet llmlab_guard {

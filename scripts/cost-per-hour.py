@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Imprime o custo/hora definido em k8s/overlays/<perfil>/cost.yaml."""
+"""Prints the cost/hour set in k8s/overlays/<profile>/cost.yaml."""
 import re
 import sys
 from pathlib import Path

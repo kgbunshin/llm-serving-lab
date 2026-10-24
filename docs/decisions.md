@@ -1,74 +1,74 @@
-# Decisões
+# Decisions
 
-Registro curto do que foi decidido e por quê. Vira a espinha do post.
+A short record of what was decided and why. It becomes the backbone of the post.
 
-## D1. Onde o modelo roda: híbrido (VPS para construir, GPU alugada para medir)
+## D1. Where the model runs: hybrid (VPS to build, rented GPU to measure)
 
-A VPS que já hospeda o delfos (Hostinger, 4 vCPU, 15 GB, **sem GPU**) é de graça
-na margem, mas não tem GPU. Comprar uma máquina com GPU não cabe no teto. Por
-isso o projeto tem dois perfis com os mesmos manifests:
+The VPS that already hosts Delfos (Hostinger, 4 vCPU, 15 GB, **no GPU**) is free
+at the margin, but it has no GPU. Buying a machine with a GPU doesn't fit the
+budget cap. So the project has two profiles with the same manifests:
 
-| Perfil | Onde | Servidor | Para quê | Custo |
+| Profile | Where | Server | What for | Cost |
 |---|---|---|---|---|
-| `cpu` | k3s na VPS do delfos | llama.cpp (Q4_K_M) | etapas 2 a 5 inteiras, sem relógio correndo | ~US$0,014/h (fixo, já pago) |
-| `gpu` | GKE zonal, 1 nó L4 spot | vLLM (bf16) | etapa 1 e números finais do post | ~US$0,35/h só com o cluster ligado |
+| `cpu` | k3s on the Delfos VPS | llama.cpp (Q4_K_M) | all of steps 2 to 5, with no clock running | ~US$0.014/h (fixed, already paid) |
+| `gpu` | Zonal GKE, 1 L4 spot node | vLLM (bf16) | step 1 and the final numbers for the post | ~US$0.35/h, only while the cluster is up |
 
-Todo o trabalho de Istio, Prometheus e dashboard é feito no perfil `cpu`. O GKE
-só liga quando a plataforma já está pronta, para rodar `make platform deploy load`
-e desligar. Isso deixa o custo da GPU proporcional às horas de medição, não às
-horas de depuração de YAML.
+All the Istio, Prometheus and dashboard work happens on the `cpu` profile. GKE
+only comes up once the platform is ready, to run `make platform deploy load`
+and shut down. That keeps GPU cost proportional to measurement hours, not to
+hours spent debugging YAML.
 
-Alternativas descartadas:
-- **GPU só na nuvem desde o início:** cada hora depurando Istio custa GPU.
-- **Nó de GPU remoto entrando no k3s da VPS (RunPod, Vast) via WireGuard:** é
-  bonito, mas a maioria desses provedores entrega container e não VM, e o
-  kubelet não roda. É um projeto à parte.
-- **EKS:** o control plane cobra US$0,10/h. No GKE, um cluster zonal entra no
-  free tier.
+Rejected alternatives:
+- **Cloud GPU from day one:** every hour spent debugging Istio costs GPU time.
+- **A remote GPU node (RunPod, Vast) joining the VPS k3s over WireGuard:** it's
+  elegant, but most of these providers hand out containers, not VMs, and the
+  kubelet won't run. It's a separate project.
+- **EKS:** the control plane costs US$0.10/h. On GKE, one zonal cluster falls
+  under the free tier.
 
-## D2. Modelo: Qwen2.5-1.5B-Instruct
+## D2. Model: Qwen2.5-1.5B-Instruct
 
-- Licença Apache-2.0.
-- Pequeno o bastante para rodar em 4 vCPU (GGUF Q4_K_M, ~1 GB) e com sobra numa
-  L4 (bf16, ~3 GB). Sobra KV cache para concorrência, que é o que o vLLM explora.
-- O mesmo modelo nos dois perfis: a comparação CPU vs GPU no post fica justa.
-- Sem "thinking mode", então a contagem de tokens não mistura raciocínio com resposta.
+- Apache-2.0 license.
+- Small enough to run on 4 vCPU (GGUF Q4_K_M, ~1 GB) and with room to spare on an
+  L4 (bf16, ~3 GB). That leaves KV cache for concurrency, which is what vLLM exploits.
+- Same model on both profiles, so the CPU vs GPU comparison in the post is fair.
+- No "thinking mode", so token counts don't mix reasoning with the answer.
 
-## D3. Servidor: llama.cpp na CPU, vLLM na GPU
+## D3. Server: llama.cpp on CPU, vLLM on GPU
 
-Os dois expõem API OpenAI-compatível e métricas Prometheus, e o resto da stack
-não muda. As métricas têm nomes diferentes (`llamacpp:*` e `vllm:*`), então
-`platform/monitoring/rules.yaml` normaliza tudo em `llm:*` e o dashboard só lê
-essas séries.
+Both expose an OpenAI-compatible API and Prometheus metrics, and the rest of the
+stack doesn't change. The metrics have different names (`llamacpp:*` and
+`vllm:*`), so `platform/monitoring/rules.yaml` normalizes everything into `llm:*`
+and the dashboard only reads those series.
 
-## D4. Nada exposto na internet
+## D4. Nothing exposed to the internet
 
-- O gateway do Istio é `ClusterIP`. O acesso é por port-forward ou de dentro do cluster.
-- A VPS não tinha firewall nenhum. O k3s abre 6443/10250/NodePorts em 0.0.0.0,
-  então o playbook cria uma tabela nftables própria que descarta essas portas
-  na interface pública. Não usa `nftables.service`, porque o `flush ruleset`
-  dele apagaria as regras do k3s.
-- `AuthorizationPolicy`: só o service account do ingress gateway chama o modelo.
+- The Istio gateway is `ClusterIP`. Access is via port-forward or from inside the cluster.
+- The VPS had no firewall at all. k3s opens 6443/10250/NodePorts on 0.0.0.0, so
+  the playbook creates its own nftables table that drops those ports on the
+  public interface. It doesn't use `nftables.service`, because its
+  `flush ruleset` would wipe out the k3s rules.
+- `AuthorizationPolicy`: only the ingress gateway service account can call the model.
 
-## D5. Latência medida no gateway, não no cliente
+## D5. Latency measured at the gateway, not at the client
 
-A latência "oficial" vem de `istio_request_duration_milliseconds` no ingress
-gateway, com o path como label (`platform/istio/telemetry.yaml`). Inclui fila e
-geração, exclui rede do cliente. O load test roda como Job dentro do cluster
-pelo mesmo motivo.
+The "official" latency comes from `istio_request_duration_milliseconds` on the
+ingress gateway, with the path as a label (`platform/istio/telemetry.yaml`). It
+includes queueing and generation and excludes client network. The load test runs
+as a Job inside the cluster for the same reason.
 
-## D6. Teto de custo: US$50
+## D6. Budget cap: US$50
 
-- Alerta de orçamento no GCP (`infra/gke/budget.sh`) em 50%, 80% e 100%.
-- O `make gke-up` agenda um timer `systemd --user` que roda `gke-down` depois de
-  `TTL` (padrão 4h). GPU esquecida se apaga sozinha.
-- Spot nos dois node pools: se a GCP tomar o nó de volta, o teste é refeito,
-  o que é barato.
-- Conta: 4 sessões de 4h × US$0,35/h ≈ US$6, mais disco e egress. Sobra
-  margem grande dentro dos US$50.
+- GCP budget alert (`infra/gke/budget.sh`) at 50%, 80% and 100%.
+- `make gke-up` schedules a `systemd --user` timer that runs `gke-down` after
+  `TTL` (default 4h). A forgotten GPU shuts itself off.
+- Spot on both node pools: if GCP reclaims the node, the test is rerun, which
+  is cheap.
+- The math: 4 sessions of 4h × US$0.35/h ≈ US$6, plus disk and egress. That
+  leaves a wide margin within the US$50.
 
-## D7. Cortes se passar de 6 semanas
+## D7. Cuts if it goes past 6 weeks
 
-1. Etapa 5 (dashboard de custo): o custo por 1k requisições sai da conta manual
-   com o JSON do load test, que já calcula.
-2. AuthorizationPolicy e Telemetry por rota: o post fica só com p95 global.
+1. Step 5 (cost dashboard): cost per 1k requests comes from a manual calculation
+   using the load test JSON, which already computes it.
+2. AuthorizationPolicy and per-route Telemetry: the post keeps only a global p95.

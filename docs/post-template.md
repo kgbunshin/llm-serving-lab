@@ -1,41 +1,41 @@
-# Servindo um LLM em Kubernetes: latência, tokens e custo medidos
+# Serving an LLM on Kubernetes: latency, tokens and cost, measured
 
-> Rascunho para o allans.dev. Os números entre ⟨⟩ saem de `results/*.jsonl` e do dashboard.
+> Draft for allans.dev. Numbers in ⟨⟩ come from `results/*.jsonl` and the dashboard.
 
-## O que eu queria responder
+## What I wanted to answer
 
-Quanto custa, de verdade, servir um modelo pequeno em Kubernetes com um mínimo de
-produção (mTLS, métricas, dashboard), e onde está o gargalo.
+How much it really costs to serve a small model on Kubernetes with a minimum of
+production readiness (mTLS, metrics, dashboard), and where the bottleneck is.
 
 ## Setup
 
-- Modelo: Qwen2.5-1.5B-Instruct (por quê: docs/decisions.md D2)
-- CPU: k3s numa VPS de 4 vCPU, llama.cpp Q4_K_M
-- GPU: GKE, 1× NVIDIA L4 spot (g2-standard-4), vLLM ⟨versão⟩
-- Istio ⟨versão⟩ com mTLS STRICT, kube-prometheus-stack, Grafana
+- Model: Qwen2.5-1.5B-Instruct (why: docs/decisions.md D2)
+- CPU: k3s on a 4 vCPU VPS, llama.cpp Q4_K_M
+- GPU: GKE, 1× NVIDIA L4 spot (g2-standard-4), vLLM ⟨version⟩
+- Istio ⟨version⟩ with mTLS STRICT, kube-prometheus-stack, Grafana
 
-## Números
+## Numbers
 
 | | CPU (VPS) | GPU (L4) |
 |---|---|---|
-| p95 latência, concorrência 1 | ⟨⟩ s | ⟨⟩ s |
-| p95 latência, concorrência 8 | ⟨⟩ s | ⟨⟩ s |
-| tokens/s gerados (pico) | ⟨⟩ | ⟨⟩ |
-| custo/hora | US$⟨⟩ | US$⟨⟩ |
-| custo por 1k requisições | US$⟨⟩ | US$⟨⟩ |
-| custo por 1M tokens | US$⟨⟩ | US$⟨⟩ |
+| p95 latency, concurrency 1 | ⟨⟩ s | ⟨⟩ s |
+| p95 latency, concurrency 8 | ⟨⟩ s | ⟨⟩ s |
+| generated tokens/s (peak) | ⟨⟩ | ⟨⟩ |
+| cost/hour | US$⟨⟩ | US$⟨⟩ |
+| cost per 1k requests | US$⟨⟩ | US$⟨⟩ |
+| cost per 1M tokens | US$⟨⟩ | US$⟨⟩ |
 
-## Onde o gargalo apareceu
+## Where the bottleneck showed up
 
-⟨CPU: fila nos slots do llama.cpp (--parallel), latência cresce linear com a concorrência.⟩
+⟨CPU: queueing on llama.cpp slots (--parallel), latency grows linearly with concurrency.⟩
 ⟨GPU: ...⟩
 
-## Decisões que eu tomaria de novo (e as que não)
+## Decisions I'd make again (and the ones I wouldn't)
 
-## Quanto custou o projeto inteiro
+## What the whole project cost
 
-⟨fatura GCP⟩ + VPS que já existia.
+⟨GCP bill⟩ + the VPS that already existed.
 
-## Cluster desligado
+## Cluster shut down
 
-⟨print do `gcloud container clusters list` vazio⟩
+⟨screenshot of an empty `gcloud container clusters list`⟩

@@ -13,9 +13,9 @@ spec:
         protocol: HTTP
       hosts: ["*"]
 ---
-# Uma rota por endpoint da API OpenAI-compatível. O Telemetry em
-# platform/istio/telemetry.yaml põe o path como label nas métricas do gateway,
-# daí sai a latência por rota.
+# One route per OpenAI-compatible API endpoint. The Telemetry in
+# platform/istio/telemetry.yaml puts the path as a label on gateway metrics,
+# which is where per-route latency comes from.
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:

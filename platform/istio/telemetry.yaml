@@ -1,6 +1,6 @@
-# Adiciona o path da requisição como label nas métricas do gateway, para medir
-# latência por rota. A cardinalidade fica limitada porque o gateway não é
-# público e o VirtualService só tem 4 rotas.
+# Adds the request path as a label on gateway metrics, to measure per-route
+# latency. Cardinality stays bounded because the gateway is not public and the
+# VirtualService has only 4 routes.
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:

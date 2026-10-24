@@ -1,4 +1,4 @@
-# Etapa 3: mTLS STRICT no namespace. Nada fala com o modelo em texto puro.
+# Step 3: mTLS STRICT in the namespace. Nothing talks to the model in plaintext.
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
@@ -8,8 +8,8 @@ spec:
   mtls:
     mode: STRICT
 ---
-# Só o ingress gateway chama o modelo. As métricas são lidas pela porta 15020
-# do sidecar (metrics merging), que não passa por esta policy.
+# Only the ingress gateway calls the model. Metrics are read from the sidecar's
+# port 15020 (metrics merging), which doesn't go through this policy.
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:

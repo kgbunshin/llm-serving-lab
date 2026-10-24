@@ -1,6 +1,6 @@
-# Probe contínuo: um teste curto de hora em hora, para o dashboard ter série
-# histórica (p95, tokens/s, custo) sem ninguém rodar make load. Curto de
-# propósito, porque a VPS é dividida com o delfos: ~2 min de CPU por hora.
+# Continuous probe: a short test every hour, so the dashboard has a historical
+# series (p95, tokens/s, cost) without anyone running make load. Short on
+# purpose, because the VPS is shared with Delfos: ~2 min of CPU per hour.
 apiVersion: batch/v1
 kind: CronJob
 metadata:

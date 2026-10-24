@@ -1,6 +1,6 @@
-# Normaliza as métricas dos dois servidores (vLLM e llama.cpp) em séries llm:*,
-# para o mesmo dashboard servir aos dois perfis. llm:node_cost_usd_per_hour vem
-# do overlay (k8s/overlays/*/cost.yaml).
+# Normalizes metrics from both servers (vLLM and llama.cpp) into llm:* series,
+# so the same dashboard serves both profiles. llm:node_cost_usd_per_hour comes
+# from the overlay (k8s/overlays/*/cost.yaml).
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -11,7 +11,7 @@ spec:
     - name: llm-serving
       interval: 15s
       rules:
-        # --- vazão (vista pelo gateway, ou seja, o que o cliente recebeu) ---
+        # --- throughput (as seen by the gateway, i.e. what the client received) ---
         - record: llm:requests:rate1m
           expr: |
             sum by (request_path, response_code) (
@@ -22,7 +22,7 @@ spec:
             sum(rate(istio_requests_total{reporter="source", destination_service_name="llm",
                      request_path=~"/v1/(chat/)?completions", response_code="200"}[5m]))
 
-        # --- latência ponta a ponta por rota, em segundos ---
+        # --- end-to-end latency by route, in seconds ---
         - record: llm:latency_seconds:p50_5m
           expr: |
             histogram_quantile(0.50, sum by (le, request_path) (
@@ -39,7 +39,7 @@ spec:
               rate(istio_request_duration_milliseconds_bucket{reporter="source", destination_service_name="llm"}[5m])
             )) / 1000
 
-        # --- tokens/s (do servidor de modelo) ---
+        # --- tokens/s (from the model server) ---
         - record: llm:generated_tokens:rate1m
           expr: |
             sum(rate(vllm:generation_tokens_total[1m]))
@@ -56,8 +56,8 @@ spec:
           expr: |
             sum(vllm:num_requests_running) or sum(llamacpp:requests_processing)
 
-        # --- custo (etapa 5). Só existe enquanto há tráfego: sem requisições
-        # o custo por requisição é indefinido, e o painel mostra "No data". ---
+        # --- cost (step 5). Only exists while there is traffic: with no requests
+        # the cost per request is undefined, and the panel shows "No data". ---
         - record: llm:cost_usd_per_1k_requests
           expr: |
             scalar(llm:node_cost_usd_per_hour)

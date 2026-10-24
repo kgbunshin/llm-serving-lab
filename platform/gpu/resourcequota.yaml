@@ -1,5 +1,5 @@
-# O GKE só deixa pods com essas PriorityClasses fora do kube-system se houver
-# uma ResourceQuota liberando. O GPU operator usa as duas.
+# GKE only allows pods with these PriorityClasses outside kube-system if a
+# ResourceQuota permits it. The GPU operator uses both.
 apiVersion: v1
 kind: ResourceQuota
 metadata:

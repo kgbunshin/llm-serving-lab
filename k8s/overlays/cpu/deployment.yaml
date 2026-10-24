@@ -1,6 +1,6 @@
-# Perfil CPU: roda na VPS sem GPU. Mesmo modelo do perfil GPU (Qwen2.5-1.5B),
-# quantizado em Q4_K_M para caber em 4 vCPU. Serve para montar e testar todo o
-# resto (Istio, métricas, custo) sem gastar nada com GPU.
+# CPU profile: runs on the VPS without a GPU. Same model as the GPU profile
+# (Qwen2.5-1.5B), quantized to Q4_K_M to fit in 4 vCPU. Used to build and test
+# everything else (Istio, metrics, cost) without spending anything on GPU.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -9,7 +9,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate            # o PVC é RWO e a VPS só tem um nó
+    type: Recreate            # the PVC is RWO and the VPS has a single node
   selector:
     matchLabels:
       app: llm
@@ -19,7 +19,7 @@ spec:
         app: llm
         version: llamacpp-cpu
       annotations:
-        # Istio junta estas métricas com as do Envoy na porta 15020.
+        # Istio merges these metrics with Envoy's on port 15020.
         prometheus.io/scrape: "true"
         prometheus.io/port: "8000"
         prometheus.io/path: /metrics
@@ -45,7 +45,7 @@ spec:
       containers:
         - name: model
           image: ghcr.io/ggml-org/llama.cpp:server-b11723
-          # Flag e valor separados: o llama-server troca "_" por "-" em "--flag=valor".
+          # Flag and value kept separate: llama-server swaps "_" for "-" in "--flag=value".
           args:
             - --model
             - /models/qwen2.5-1.5b-instruct-q4_k_m.gguf
@@ -57,11 +57,11 @@ spec:
             - "8000"
             - --metrics
             - --ctx-size
-            - "8192"              # dividido entre os slots: 4096 por requisição
+            - "8192"              # split across slots: 4096 per request
             - --parallel
             - "2"
             - --threads
-            - "3"                 # 1 vCPU fica para o delfos e o sistema
+            - "3"                 # 1 vCPU left for Delfos and the system
           ports:
             - {name: http, containerPort: 8000}
           readinessProbe:
@@ -88,7 +88,7 @@ metadata:
   namespace: llm
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: local-path   # provisioner padrão do k3s
+  storageClassName: local-path   # k3s default provisioner
   resources:
     requests:
       storage: 5Gi

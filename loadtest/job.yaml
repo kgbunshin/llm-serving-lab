@@ -1,6 +1,6 @@
-# Roda de dentro do cluster, passando pelo ingress gateway: a latência medida
-# não inclui o túnel SSH nem a internet. Namespace sem sidecar de propósito,
-# o tráfego entra pelo gateway como entraria um cliente externo.
+# Runs from inside the cluster, through the ingress gateway: the measured latency
+# excludes the SSH tunnel and the internet. The namespace has no sidecar on
+# purpose, so traffic enters through the gateway like an external client's would.
 apiVersion: v1
 kind: Namespace
 metadata:

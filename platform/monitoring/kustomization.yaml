@@ -10,4 +10,4 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
       labels:
-        grafana_dashboard: "1"   # o sidecar do Grafana importa sozinho
+        grafana_dashboard: "1"   # the Grafana sidecar imports it automatically

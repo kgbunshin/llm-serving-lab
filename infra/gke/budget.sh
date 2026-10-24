@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Uma vez só: alerta de orçamento no billing account (US$50 por padrão).
-# Alerta não desliga nada sozinho, só avisa por e-mail. Quem desliga é o TTL.
+# One-time: budget alert on the billing account (US$50 by default).
+# The alert doesn't shut anything down, it only emails you. The TTL does the shutting down.
 set -euo pipefail
-: "${BILLING_ACCOUNT:?defina BILLING_ACCOUNT (gcloud billing accounts list)}"
-: "${GCP_PROJECT:?defina GCP_PROJECT}"
+: "${BILLING_ACCOUNT:?set BILLING_ACCOUNT (gcloud billing accounts list)}"
+: "${GCP_PROJECT:?set GCP_PROJECT}"
 AMOUNT=${AMOUNT:-50}
 gcloud billing budgets create \
   --billing-account "$BILLING_ACCOUNT" \
