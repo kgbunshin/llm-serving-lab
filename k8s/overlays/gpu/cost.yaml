@@ -1,5 +1,5 @@
-# Custo por hora dos nós ligados durante o teste (GKE spot).
-# Confira os preços em https://cloud.google.com/compute/gpus-pricing antes de rodar.
+# Hourly cost of the nodes running during the test (GKE spot).
+# Check prices at https://cloud.google.com/compute/gpus-pricing before running.
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -10,7 +10,7 @@ spec:
     - name: llm-cost-input
       rules:
         - record: llm:node_cost_usd_per_hour
-          # g2-standard-4 spot (L4) + e2-standard-4 spot (sistema). TODO: preço real da região
+          # g2-standard-4 spot (L4) + e2-standard-4 spot (system). TODO: actual price for the region
           expr: vector(0.30 + 0.05)
           labels:
             profile: gpu

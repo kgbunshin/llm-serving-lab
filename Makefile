@@ -1,7 +1,7 @@
-# Perfil: cpu (k3s na VPS, llama.cpp) ou gpu (GKE spot com L4, vLLM).
+# Profile: cpu (k3s on the VPS, llama.cpp) or gpu (GKE spot with L4, vLLM).
 PROFILE ?= cpu
 KCFG    ?= $(CURDIR)/.kube/$(PROFILE).yaml
-# Sempre com kubeconfig explícito: o contexto padrão da máquina pode ser outro cluster.
+# Always with an explicit kubeconfig: the machine's default context may be another cluster.
 K := kubectl --kubeconfig $(KCFG)
 H := helm --kubeconfig $(KCFG)
 
@@ -16,7 +16,7 @@ TUNNEL_NAME      ?= llm-lab
 .PHONY: help repos vps-check vps-up vps-tunnel vps-down gke-up gke-down gpu-operator gpu-check \
         istio monitoring platform deploy smoke load probe edge access grafana prometheus status dashboard clean-app
 
-help: ## lista os alvos
+help: ## list targets
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
 	@echo "  PROFILE=$(PROFILE)  KCFG=$(KCFG)"
 
@@ -26,31 +26,31 @@ repos:
 	$(H) repo add nvidia https://helm.ngc.nvidia.com/nvidia --force-update >/dev/null
 	$(H) repo update >/dev/null
 
-# ---------- cluster: VPS (perfil cpu) ----------
-vps-check: ## dry-run do playbook do k3s (--check --diff)
+# ---------- cluster: VPS (cpu profile) ----------
+vps-check: ## dry run of the k3s playbook (--check --diff)
 	$(ANSIBLE_PLAYBOOK) -i infra/vps/inventory.ini infra/vps/k3s.yml --check --diff
-vps-up: ## instala o k3s na VPS e salva .kube/cpu.yaml
+vps-up: ## install k3s on the VPS and save .kube/cpu.yaml
 	$(ANSIBLE_PLAYBOOK) -i infra/vps/inventory.ini infra/vps/k3s.yml
-vps-tunnel: ## túnel SSH para a API do k3s (deixe rodando em outro terminal)
+vps-tunnel: ## SSH tunnel to the k3s API (leave it running in another terminal)
 	ssh -N -L 6443:127.0.0.1:6443 $(VPS)
-vps-down: ## remove o k3s da VPS (o delfos continua)
+vps-down: ## remove k3s from the VPS (Delfos stays)
 	$(ANSIBLE_PLAYBOOK) -i infra/vps/inventory.ini infra/vps/teardown.yml
 
-# ---------- cluster: GKE (perfil gpu) ----------
-gke-up: ## cria o cluster GKE com GPU spot (autodestrói após TTL)
+# ---------- cluster: GKE (gpu profile) ----------
+gke-up: ## create the GKE cluster with a spot GPU (self-destructs after TTL)
 	infra/gke/up.sh
-gke-down: ## apaga o cluster GKE
+gke-down: ## delete the GKE cluster
 	infra/gke/down.sh
-gpu-operator: repos ## etapa 1: NVIDIA GPU operator (driver, device plugin, DCGM)
+gpu-operator: repos ## step 1: NVIDIA GPU operator (driver, device plugin, DCGM)
 	$(K) create namespace gpu-operator --dry-run=client -o yaml | $(K) apply -f -
 	$(K) apply -f platform/gpu/resourcequota.yaml
 	$(H) upgrade --install gpu-operator nvidia/gpu-operator --version $(GPU_OP_VERSION) \
 	  -n gpu-operator -f platform/gpu/gpu-operator-values.yaml --wait --timeout 20m
-gpu-check: ## etapa 1: nvidia-smi dentro de um pod
+gpu-check: ## step 1: nvidia-smi inside a pod
 	KCFG=$(KCFG) scripts/check-gpu.sh
 
-# ---------- plataforma ----------
-istio: repos ## etapa 3: Istio base + istiod + ingress gateway
+# ---------- platform ----------
+istio: repos ## step 3: Istio base + istiod + ingress gateway
 	$(H) upgrade --install istio-base istio/base --version $(ISTIO_VERSION) -n istio-system --create-namespace --wait
 	$(H) upgrade --install istiod istio/istiod --version $(ISTIO_VERSION) -n istio-system \
 	  -f platform/istio/istiod-values.yaml --wait
@@ -58,7 +58,7 @@ istio: repos ## etapa 3: Istio base + istiod + ingress gateway
 	  --create-namespace -f platform/istio/gateway-values.yaml --wait
 	$(K) apply -f platform/istio/telemetry.yaml
 
-monitoring: repos ## etapa 4: Prometheus + Grafana + regras + dashboard
+monitoring: repos ## step 4: Prometheus + Grafana + rules + dashboard
 	$(H) upgrade --install kps prometheus-community/kube-prometheus-stack --version $(KPS_VERSION) \
 	  -n monitoring --create-namespace -f platform/monitoring/kps-values.yaml \
 	  $(if $(wildcard platform/monitoring/kps-values-sso.yaml),-f platform/monitoring/kps-values-sso.yaml) --wait --timeout 10m
@@ -67,17 +67,17 @@ monitoring: repos ## etapa 4: Prometheus + Grafana + regras + dashboard
 platform: istio monitoring ## istio + monitoring
 
 # ---------- app ----------
-deploy: ## etapa 2: modelo do perfil atual (k8s/overlays/$(PROFILE))
+deploy: ## step 2: model for the current profile (k8s/overlays/$(PROFILE))
 	$(K) apply -k k8s/overlays/$(PROFILE)
 	$(K) -n llm rollout status deploy/llm --timeout=30m
 
-smoke: ## etapa 2: curl de ponta a ponta pelo gateway
+smoke: ## step 2: end-to-end curl through the gateway
 	KCFG=$(KCFG) scripts/smoke.sh
 
 COST_PER_HOUR ?= $(shell python3 scripts/cost-per-hour.py $(PROFILE))
 CONCURRENCY   ?= 1,2,4,8
 REQUESTS      ?= 40
-load: ## roda o load test dentro do cluster e salva em results/
+load: ## run the load test inside the cluster and save to results/
 	$(K) create namespace loadtest --dry-run=client -o yaml | $(K) apply -f -
 	$(K) -n loadtest create configmap loadgen --from-file=loadtest/loadgen.py --dry-run=client -o yaml | $(K) apply -f -
 	$(K) -n loadtest delete job loadgen --ignore-not-found
@@ -87,30 +87,30 @@ load: ## roda o load test dentro do cluster e salva em results/
 	@mkdir -p results
 	$(K) -n loadtest logs job/loadgen | tee results/$(PROFILE)-$$(date +%Y%m%d-%H%M).jsonl
 
-probe: ## liga o probe de hora em hora (CronJob) que alimenta o dashboard 24h
+probe: ## enable the hourly probe (CronJob) that feeds the 24h dashboard
 	$(K) create namespace loadtest --dry-run=client -o yaml | $(K) apply -f -
 	$(K) -n loadtest create configmap loadgen --from-file=loadtest/loadgen.py --dry-run=client -o yaml | $(K) apply -f -
 	sed -e 's/value: "0"/value: "$(COST_PER_HOUR)"/' loadtest/cronjob.yaml | $(K) apply -f -
 
-edge: ## túnel Cloudflare llm-lab + cloudflared no cluster (sem DNS: ainda inacessível)
+edge: ## llm-lab Cloudflare tunnel + cloudflared in the cluster (no DNS: still unreachable)
 	KCFG=$(KCFG) HOSTNAME=$(HOSTNAME) TUNNEL_NAME=$(TUNNEL_NAME) VPS=$(VPS) scripts/edge.sh
 
-access: ## publica o Grafana em $(HOSTNAME) atrás do Cloudflare Access (precisa CF_API_TOKEN)
+access: ## publish Grafana at $(HOSTNAME) behind Cloudflare Access (needs CF_API_TOKEN)
 	KCFG=$(KCFG) HOSTNAME=$(HOSTNAME) TUNNEL_NAME=$(TUNNEL_NAME) VPS=$(VPS) KPS_VERSION=$(KPS_VERSION) scripts/access.sh
 
-grafana: ## abre o Grafana em localhost:3000 (usuário admin)
-	@echo "senha: $$($(K) -n monitoring get secret kps-grafana -o jsonpath='{.data.admin-password}' | base64 -d)"
+grafana: ## open Grafana on localhost:3000 (user admin)
+	@echo "password: $$($(K) -n monitoring get secret kps-grafana -o jsonpath='{.data.admin-password}' | base64 -d)"
 	$(K) -n monitoring port-forward svc/kps-grafana 3000:80
 
 prometheus: ## Prometheus em localhost:9090
 	$(K) -n monitoring port-forward svc/kps-kube-prometheus-stack-prometheus 9090:9090
 
-status: ## pods de tudo que o projeto instala
+status: ## pods for everything the project installs
 	$(K) get pods -A -o wide | grep -E 'NAMESPACE|llm|istio|monitoring|gpu-operator|loadtest'
 
-dashboard: ## regenera platform/monitoring/dashboard.json
+dashboard: ## regenerate platform/monitoring/dashboard.json
 	python3 scripts/gen_dashboard.py
 
-clean-app: ## remove só o modelo e o load test (mantém plataforma)
+clean-app: ## remove only the model and the load test (keeps the platform)
 	$(K) delete -k k8s/overlays/$(PROFILE) --ignore-not-found
 	$(K) delete namespace loadtest --ignore-not-found

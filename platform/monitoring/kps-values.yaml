@@ -1,15 +1,15 @@
-# kube-prometheus-stack enxuto para um nó só.
+# Lean kube-prometheus-stack for a single node.
 alertmanager:
   enabled: false
-# k3s/GKE não expõem esses componentes; deixá-los ligados só gera alvos "down".
+# k3s/GKE don't expose these components; leaving them on only creates "down" targets.
 kubeEtcd: {enabled: false}
 kubeControllerManager: {enabled: false}
 kubeScheduler: {enabled: false}
 kubeProxy: {enabled: false}
 prometheus:
   prometheusSpec:
-    # 30 dias em disco de verdade (local-path do k3s): o probe roda 24h e o
-    # histórico sobrevive a restart do pod.
+    # 30 days on real disk (k3s local-path): the probe runs 24h and the
+    # history survives pod restarts.
     retention: 30d
     retentionSize: 8GB
     storageSpec:
@@ -21,7 +21,7 @@ prometheus:
             requests:
               storage: 10Gi
     scrapeInterval: 15s
-    # Pega PodMonitors/Rules de qualquer namespace, não só os do chart.
+    # Picks up PodMonitors/Rules from any namespace, not just the chart's.
     podMonitorSelectorNilUsesHelmValues: false
     serviceMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
@@ -29,23 +29,23 @@ prometheus:
       requests: {cpu: 200m, memory: 512Mi}
       limits: {memory: 1536Mi}
 grafana:
-  adminPassword: ""        # o chart gera uma senha aleatória num Secret
+  adminPassword: ""        # the chart generates a random password in a Secret
   service:
     type: ClusterIP
   sidecar:
-    # Os sidecars pedem "reload" ao Grafana com usuário/senha, que ficam
-    # desligados quando o SSO do Access está ativo (dá 401). Sem reload, o
-    # Grafana relê os dashboards do disco sozinho. (O sidecar de datasources
-    # ainda tenta o reload e loga 401; é inofensivo, o datasource é fixo.)
+    # The sidecars ask Grafana to "reload" using user/password, which are
+    # disabled when Access SSO is on (returns 401). Without reload, Grafana
+    # rereads dashboards from disk on its own. (The datasources sidecar still
+    # tries to reload and logs 401; harmless, the datasource is static.)
     dashboards:
       enabled: true
       searchNamespace: ALL
       skipReload: true
   resources:
     requests: {cpu: 50m, memory: 192Mi}
-    limits: {memory: 768Mi}   # 384Mi dava OOMKilled no Grafana 13
+    limits: {memory: 768Mi}   # 384Mi got OOMKilled on Grafana 13
   grafana.ini:
     plugins:
-      # Por padrão o Grafana baixa ~15 plugins na subida (pyroscope, loki,
-      # mssql...). Não usamos, e isso estourava a memória.
+      # By default Grafana downloads ~15 plugins at startup (pyroscope, loki,
+      # mssql...). We don't use them, and it blew the memory limit.
       preinstall_disabled: true

@@ -1,5 +1,5 @@
-# Perfil GPU: vLLM numa NVIDIA L4 (24 GB). O modelo é o mesmo do perfil CPU, em
-# bf16, para que a comparação no post seja justa.
+# GPU profile: vLLM on an NVIDIA L4 (24 GB). Same model as the CPU profile, in
+# bf16, so the comparison in the post is fair.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,7 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate            # só existe uma GPU
+    type: Recreate            # there is only one GPU
   selector:
     matchLabels:
       app: llm
@@ -39,7 +39,7 @@ spec:
           readinessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 5
-          startupProbe:       # download + carregamento + CUDA graphs levam minutos
+          startupProbe:       # download + loading + CUDA graphs take minutes
             httpGet: {path: /health, port: http}
             periodSeconds: 10
             failureThreshold: 90
@@ -52,5 +52,5 @@ spec:
       volumes:
         - name: shm
           emptyDir: {medium: Memory, sizeLimit: 2Gi}
-        - name: hf-cache      # o cluster é descartável, então cache efêmero basta
+        - name: hf-cache      # the cluster is disposable, so an ephemeral cache is enough
           emptyDir: {}

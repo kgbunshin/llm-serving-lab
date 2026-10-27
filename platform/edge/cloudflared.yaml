@@ -1,8 +1,8 @@
-# Saída do cluster para a internet sem abrir porta nenhuma: o cloudflared faz
-# conexão de saída para a Cloudflare, e o Cloudflare Access fica na frente do
-# hostname. É um túnel próprio (llm-lab), separado do túnel do delfos.
-# As credenciais (Secret cloudflared-creds) são criadas pelo `make edge`, nunca
-# commitadas.
+# Exposes the cluster to the internet without opening any port: cloudflared makes
+# an outbound connection to Cloudflare, and Cloudflare Access sits in front of
+# the hostname. It's a dedicated tunnel (llm-lab), separate from the Delfos tunnel.
+# The credentials (Secret cloudflared-creds) are created by `make edge`, never
+# committed.
 apiVersion: v1
 kind: Namespace
 metadata:

@@ -1,6 +1,6 @@
 {
   "uid": "llm-serving",
-  "title": "LLM serving: latência, tokens e custo",
+  "title": "LLM serving: latency, tokens and cost",
   "tags": [
     "llm",
     "istio",
@@ -17,7 +17,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Resumo (números do post)",
+      "title": "Summary (numbers for the post)",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -30,7 +30,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Latência p95 (chat)",
+      "title": "p95 latency (chat)",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -74,7 +74,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Tokens gerados/s",
+      "title": "Generated tokens/s",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -118,7 +118,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Requisições/s (200)",
+      "title": "Requests/s (200)",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -162,8 +162,8 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "US$ por 1k requisições",
-      "description": "Custo/hora do nó ÷ requisições OK por hora. Sem tráfego não há valor.",
+      "title": "US$ per 1k requests",
+      "description": "Node cost/hour ÷ OK requests per hour. No traffic, no value.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -206,7 +206,7 @@
     {
       "id": 6,
       "type": "stat",
-      "title": "US$ por 1M tokens",
+      "title": "US$ per 1M tokens",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -250,8 +250,8 @@
     {
       "id": 7,
       "type": "stat",
-      "title": "US$ por hora (nó)",
-      "description": "Definido em k8s/overlays/<perfil>/cost.yaml.",
+      "title": "US$ per hour (node)",
+      "description": "Set in k8s/overlays/<profile>/cost.yaml.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -294,7 +294,7 @@
     {
       "id": 8,
       "type": "row",
-      "title": "Latência e vazão (gateway Istio)",
+      "title": "Latency and throughput (Istio gateway)",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -307,8 +307,8 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Latência do chat",
-      "description": "Ponta a ponta, medida no ingress gateway (inclui fila e geração).",
+      "title": "Chat latency",
+      "description": "End to end, measured at the ingress gateway (includes queueing and generation).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -373,7 +373,7 @@
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Latência p95 por rota",
+      "title": "p95 latency by route",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -421,7 +421,7 @@
     {
       "id": 11,
       "type": "timeseries",
-      "title": "Requisições/s por rota e status",
+      "title": "Requests/s by route and status",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -469,8 +469,8 @@
     {
       "id": 12,
       "type": "timeseries",
-      "title": "Requisições em andamento",
-      "description": "Se fica colado no --parallel (CPU) ou cresce sem parar, a fila é o gargalo.",
+      "title": "Requests in flight",
+      "description": "If it sits at --parallel (CPU) or keeps growing, the queue is the bottleneck.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -488,7 +488,7 @@
             "uid": "prometheus"
           },
           "expr": "llm:requests_in_flight",
-          "legendFormat": "em andamento",
+          "legendFormat": "in flight",
           "refId": "A"
         }
       ],
@@ -549,7 +549,7 @@
             "uid": "prometheus"
           },
           "expr": "llm:generated_tokens:rate1m",
-          "legendFormat": "gerados",
+          "legendFormat": "generated",
           "refId": "A"
         },
         {
@@ -587,7 +587,7 @@
     {
       "id": 15,
       "type": "timeseries",
-      "title": "Time to first token p95 (só vLLM)",
+      "title": "Time to first token p95 (vLLM only)",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -635,7 +635,7 @@
     {
       "id": 16,
       "type": "row",
-      "title": "Recursos",
+      "title": "Resources",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -648,8 +648,8 @@
     {
       "id": 17,
       "type": "timeseries",
-      "title": "Uso de GPU",
-      "description": "DCGM exporter (perfil GPU). Vazio no perfil CPU.",
+      "title": "GPU utilization",
+      "description": "DCGM exporter (GPU profile). Empty on the CPU profile.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -696,7 +696,7 @@
     {
       "id": 18,
       "type": "timeseries",
-      "title": "Memória da GPU usada",
+      "title": "GPU memory used",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -744,7 +744,7 @@
     {
       "id": 19,
       "type": "timeseries",
-      "title": "CPU do container do modelo",
+      "title": "Model container CPU",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -792,7 +792,7 @@
     {
       "id": 20,
       "type": "timeseries",
-      "title": "Memória do container do modelo",
+      "title": "Model container memory",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -840,7 +840,7 @@
     {
       "id": 21,
       "type": "row",
-      "title": "Custo ao longo do tempo",
+      "title": "Cost over time",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -853,7 +853,7 @@
     {
       "id": 22,
       "type": "timeseries",
-      "title": "Custo por 1k requisições",
+      "title": "Cost per 1k requests",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -901,7 +901,7 @@
     {
       "id": 23,
       "type": "timeseries",
-      "title": "Custo por 1M tokens gerados",
+      "title": "Cost per 1M generated tokens",
       "description": "",
       "datasource": {
         "type": "prometheus",

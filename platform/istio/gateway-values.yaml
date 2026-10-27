@@ -1,5 +1,5 @@
-# ClusterIP de propósito: nada fica exposto na internet. O acesso é por
-# port-forward (smoke test, Grafana) ou por dentro do cluster (load test).
+# ClusterIP on purpose: nothing is exposed to the internet. Access is via
+# port-forward (smoke test, Grafana) or from inside the cluster (load test).
 service:
   type: ClusterIP
 autoscaling:

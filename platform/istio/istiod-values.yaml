@@ -1,9 +1,9 @@
-# Instalação enxuta: só o que o projeto usa.
+# Lean install: only what the project uses.
 autoscaleEnabled: false
 resources:
   requests: {cpu: 100m, memory: 256Mi}
 meshConfig:
-  enablePrometheusMerge: true   # métricas do app + Envoy na porta 15020
+  enablePrometheusMerge: true   # app + Envoy metrics on port 15020
 global:
   proxy:
     resources:

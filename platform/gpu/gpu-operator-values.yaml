@@ -1,6 +1,6 @@
-# Etapa 1 (perfil GPU): o operador instala driver, container toolkit, device
-# plugin e DCGM exporter. No GKE o node pool é criado com
-# gpu-driver-version=disabled e imagem Ubuntu, para o operador cuidar do driver.
+# Step 1 (GPU profile): the operator installs the driver, container toolkit,
+# device plugin and DCGM exporter. On GKE the node pool is created with
+# gpu-driver-version=disabled and an Ubuntu image, so the operator owns the driver.
 driver:
   enabled: true
 dcgmExporter:

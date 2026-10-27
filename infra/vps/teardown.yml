@@ -1,5 +1,5 @@
 ---
-# Remove o k3s e a tabela de firewall. O delfos não é tocado.
+# Removes k3s and the firewall table. Delfos is left untouched.
 - name: Remove k3s from the VPS
   hosts: llmlab
   become: true

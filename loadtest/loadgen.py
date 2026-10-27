@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Load test para a API OpenAI-compatível, só com a stdlib.
+"""Load test for the OpenAI-compatible API, stdlib only.
 
-Roda uma varredura de concorrência e imprime uma linha JSON por nível, com os
-números que vão para o post: p50/p95/p99, req/s, tokens/s e custo por 1k req.
+Runs a concurrency sweep and prints one JSON line per level, with the numbers
+that go into the post: p50/p95/p99, req/s, tokens/s and cost per 1k requests.
 
     python3 loadgen.py --url http://istio-ingressgateway.istio-ingress \
         --concurrency 1,2,4,8 --requests 40 --cost-per-hour 0.35
@@ -15,11 +15,11 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 PROMPTS = [
-    "Explique em três frases o que é um Service no Kubernetes.",
-    "Liste cinco boas práticas para escrever Dockerfiles.",
-    "Qual a diferença entre liveness e readiness probe?",
-    "Resuma o que o mTLS resolve numa service mesh.",
-    "Escreva um haicai sobre filas de requisições.",
+    "Explain in three sentences what a Kubernetes Service is.",
+    "List five best practices for writing Dockerfiles.",
+    "What is the difference between a liveness and a readiness probe?",
+    "Summarize what mTLS solves in a service mesh.",
+    "Write a haiku about request queues.",
 ]
 
 
@@ -39,7 +39,7 @@ def one_request(url, model, max_tokens, i):
         usage = data.get("usage") or {}
         return {"ok": True, "latency": time.perf_counter() - start,
                 "completion_tokens": usage.get("completion_tokens", 0)}
-    except Exception as exc:  # noqa: BLE001 - conta o erro e segue o teste
+    except Exception as exc:  # noqa: BLE001 - count the error and keep the test going
         return {"ok": False, "latency": time.perf_counter() - start, "error": str(exc)[:200]}
 
 
@@ -86,7 +86,7 @@ def main():
     ap.add_argument("--url", required=True)
     ap.add_argument("--model", default="qwen2.5-1.5b")
     ap.add_argument("--concurrency", default="1,2,4,8")
-    ap.add_argument("--requests", type=int, default=40, help="requisições por nível")
+    ap.add_argument("--requests", type=int, default=40, help="requests per level")
     ap.add_argument("--max-tokens", type=int, default=256)
     ap.add_argument("--cost-per-hour", type=float, default=0.0)
     args = ap.parse_args()
