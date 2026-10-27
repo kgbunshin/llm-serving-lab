@@ -11,3 +11,9 @@ configMapGenerator:
       disableNameSuffixHash: true
       labels:
         grafana_dashboard: "1"   # o sidecar do Grafana importa sozinho
+  - name: slo-sentinel-dashboard
+    files: [sentinel-dashboard.json]
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"   # gerado por `sentinel dashboard` (repo slo-sentinel)
